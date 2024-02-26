@@ -1,0 +1,175 @@
+﻿Program.Sub.ScreenSU.Start
+Gui.F_Main..Create(BaseForm)
+Gui.F_Main..Caption("Raw Material Part Number Generator")
+Gui.F_Main..Size(629,106)
+Gui.F_Main..MinX(0)
+Gui.F_Main..MinY(0)
+Gui.F_Main..Position(0,0)
+Gui.F_Main..AlwaysOnTop(True)
+Gui.F_Main..FontName("Tahoma")
+Gui.F_Main..FontSize(8.25)
+Gui.F_Main..ControlBox(True)
+Gui.F_Main..MaxButton(True)
+Gui.F_Main..MinButton(True)
+Gui.F_Main..MousePointer(0)
+Gui.F_Main..Moveable(True)
+Gui.F_Main..Sizeable(True)
+Gui.F_Main..ShowInTaskBar(True)
+Gui.F_Main..TitleBar(True)
+Gui.F_Main..Event(UnLoad,F_Main_UnLoad)
+Gui.F_Main.ddlPrefix.Create(DropDownList)
+Gui.F_Main.ddlPrefix.Enabled(True)
+Gui.F_Main.ddlPrefix.Visible(True)
+Gui.F_Main.ddlPrefix.Zorder(0)
+Gui.F_Main.ddlPrefix.Size(248,30)
+Gui.F_Main.ddlPrefix.Position(12,29)
+Gui.F_Main.ddlPrefix.FontName("Tahoma")
+Gui.F_Main.ddlPrefix.FontSize(14)
+Gui.F_Main.ddlPrefix.Event(Change,ddlPrefix_Change)
+Gui.F_Main.cmdGen.Create(Button)
+Gui.F_Main.cmdGen.Enabled(True)
+Gui.F_Main.cmdGen.Visible(True)
+Gui.F_Main.cmdGen.Zorder(0)
+Gui.F_Main.cmdGen.Size(109,45)
+Gui.F_Main.cmdGen.Position(506,13)
+Gui.F_Main.cmdGen.Caption("Generate")
+Gui.F_Main.cmdGen.FontName("Tahoma")
+Gui.F_Main.cmdGen.FontSize(14)
+Gui.F_Main.cmdGen.Event(Click,cmdGen_Click)
+Gui.F_Main.cmdGen.FontStyle(True,False,False,False,False)
+Gui.F_Main.txtResultPN.Create(TextBox,"",True,221,30,0,273,29,True,1,"Tahoma",14,,1)
+Gui.F_Main.txtResultPN.Locked(True)
+Gui.F_Main.lblPrefix.Create(Label,"Please select a part prefix",True,246,23,0,12,4,True,0,"Tahoma",14,,0,0)
+Gui.F_Main.lblPrefix.BorderStyle(0)
+Gui.F_Main.lblPrefix.FontStyle(True,False,False,False,False)
+Gui.F_Main.lblResultPN.Create(Label,"Resulting Part Number",True,218,23,0,273,4,True,0,"Tahoma",14,,0,0)
+Gui.F_Main.lblResultPN.BorderStyle(0)
+Gui.F_Main.lblResultPN.FontStyle(True,False,False,False,False)
+Program.Sub.ScreenSU.End
+
+Program.Sub.Preflight.Start
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+Function.Intrinsic.UI.UsePixels ' Allows you to use Pixels instead of Twips throughout
+F.Intrinsic.Control.Try
+'TJS, May 2023
+'Customer: Bishop Fixture & Millwork
+'Quote: 14137
+'Business case: Customer would like to have the ability to auto-number part numbers if required. The customer uses prefixes to identify the category a part numbers falls into, they want to set their new part numbers up by a prefix + a sequential number.
+
+F.Intrinsic.Control.If(V.Caller.Hook,=,10120) ' INS010B Populate Hook
+	'Project should only function on new inventory part
+	F.Intrinsic.Control.If(V.Caller.Switches,!=,"N")
+		F.Intrinsic.UI.ChangeCallerProperty(V.Passed.000068, "LOCK", 1)
+		F.Intrinsic.Control.End
+	F.Intrinsic.Control.Else
+		F.Intrinsic.UI.ChangeCallerProperty(V.Passed.000068, "LOCK", 0)
+		V.Passed.000068.Set("Gen PN")	
+	F.Intrinsic.Control.EndIf	
+		
+F.Intrinsic.Control.ElseIf(V.Caller.Hook,=,10210) ' INS010B Script 1 Hook
+	F.ODBC.Connection!conts.OpenCompanyConnection
+		'Prefixes are maintained in a custom table by GCG_7150_PNPrefixMX.g2u
+		F.Data.DataTable.CreateFromSQL("dtPrefixes","conts","Select distinct PREFIX, concat(PREFIX,concat(' - ',DESCRIPTION)) as DESCRIPTION from GCG_7150_PNPrefixMX where ACTIVE = '1'")
+	F.ODBC.Connection!conts.Close
+	
+	Gui.F_Main.ddlPrefix.AddItems("DataTable","dtPrefixes","PREFIX","DESCRIPTION")
+	
+	F.Data.DataTable.Close("dtPrefixes")
+	
+	Gui.F_Main..Show
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(Error,"SubRoutine",V.Ambient.CurrentSubroutine,"eNumber",V.Ambient.ErrorNumber,"eDescription",V.Ambient.ErrorDescription)
+F.Intrinsic.Control.EndTry
+Program.Sub.Main.End
+
+Program.Sub.ddlPrefix_Change.Start
+F.Intrinsic.Control.Try
+V.Local.iPrefix.Declare
+V.Local.sSQL.Declare
+V.Local.sNewPN.Declare
+
+F.Intrinsic.String.Left(V.Screen.F_Main!ddlPrefix.Value.Trim,3,V.Local.iPrefix)
+
+'Looking for existing part numbers with the selected prefix
+F.Intrinsic.String.Build("Select Convert(rtrim(substring(PART,5,17)),SQL_INTEGER) as PART from V_INVENTORY_MSTR where left(PART,4) = '{0}-' and isnumeric(rtrim(substring(PART,5,17))) = 1 order by PART;",V.Local.iPrefix,V.Local.sSQL)
+F.ODBC.Connection!conts.OpenCompanyConnection
+	F.Data.DataTable.CreateFromSQL("dtExistiningPNs","conts",V.Local.sSQL)
+F.ODBC.Connection!conts.Close
+
+F.Intrinsic.Control.If(V.DataTable.dtExistiningPNs.RowCount,=,0)
+	'If no parts have been created with the prefix then set the first part to 1
+	V.Local.sNewPN.Set(1)
+F.Intrinsic.Control.Else
+	F.ODBC.Connection!conts.OpenCompanyConnection
+		F.Intrinsic.String.Build("select * from V_INVENTORY_MSTR where RTRIM(PART) = '{0}-000001'",V.Local.iPrefix,V.Local.sSQL)
+		F.ODBC.Connection!conts.ExecuteAndReturn(V.Local.sSQL,V.Local.sSQL)
+	F.ODBC.Connection!conts.Close
+	
+	F.Intrinsic.Control.If(V.Ambient.ExecuteAndReturnEOF.Not)
+		'If parts do exist with the prefix then we are looking for the next part in line.  If there is a gap in numbers, we find the first available number in the gap and use that.
+		F.Data.DataTable.AddColumn("dtExistiningPNs","VALUE","float") 
+		F.Data.DataTable.SetSeries("dtExistiningPNs","VALUE",0,1) 
+		F.Data.DataTable.AddExpressionColumn("dtExistiningPNs","DIFF","float","PART-VALUE")
+		
+		F.Data.DataView.Create("dtExistiningPNs","dvNextPN",22,"DIFF = 1","PART desc")
+		
+		F.Intrinsic.Control.If(V.DataView.dtExistiningPNs!dvNextPN.RowCount,=,0)
+			F.Data.DataView.SetFilter("dtExistiningPNs","dvNextPN","DIFF <> 0")
+			F.Data.DataView.SetSort("dtExistiningPNs","dvNextPN","PART desc")
+		F.Intrinsic.Control.EndIf
+		
+		F.Intrinsic.Math.Add(V.DataView.dtExistiningPNs!dvNextPN(0).PART!FieldValTrim,1,V.Local.sNewPN)
+		
+	F.Intrinsic.Control.Else
+		V.Local.sNewPN.Set(1)
+	F.Intrinsic.Control.EndIf
+	
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.String.LPad(V.Local.sNewPN,"0",6,V.Local.sNewPN)
+
+'Part number format is prefix-number
+F.Intrinsic.String.Build("{0}-{1}",V.Local.iPrefix,V.Local.sNewPN,V.Local.sNewPN)
+
+Gui.F_Main.txtResultPN.Text(V.Local.sNewPN)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(Error,"SubRoutine",V.Ambient.CurrentSubroutine,"eNumber",V.Ambient.ErrorNumber,"eDescription",V.Ambient.ErrorDescription)
+F.Intrinsic.Control.EndTry
+Program.Sub.ddlPrefix_Change.End
+
+Program.Sub.cmdGen_Click.Start
+F.Intrinsic.Control.Try
+
+'Setting the generated part number back to the inventory new screen
+V.Passed.000007.Set(V.Screen.F_Main!txtResultPN.Text.Trim)
+
+F.Intrinsic.Control.End
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(Error,"SubRoutine",V.Ambient.CurrentSubroutine,"eNumber",V.Ambient.ErrorNumber,"eDescription",V.Ambient.ErrorDescription)
+F.Intrinsic.Control.EndTry
+Program.Sub.cmdGen_Click.End
+
+Program.Sub.F_Main_UnLoad.Start
+F.Intrinsic.Control.End
+Program.Sub.F_Main_UnLoad.End
+
+Program.Sub.Error.Start
+V.Local.sError.Declare
+V.Local.iRet.Declare
+V.Local.sSep.Declare
+
+F.Intrinsic.String.Build("-------------------------------------------------------------------------------------",,V.Local.sSep)
+F.Intrinsic.String.Build("({5}-{6}){0}{7}{0}Project: {4}{0}{7}{0}Sub: {1}{0}Error: {2}, {3}", V.Ambient.NewLine, V.Args.SubRoutine, V.Args.eNumber, V.Args.eDescription,V.Caller.ScriptFile,V.Ambient.Date, V.Ambient.Time,V.Local.sSep,V.Local.sError)
+F.Intrinsic.UI.Msgbox(V.Local.sError,"Error",V.Local.iRet)
+Program.Sub.Error.End
+
+Program.Sub.Comments.Start
+${$5$}$20.1.8474.24170$}$1
+${$6$}$tsmith$}$20230602115722022$}$xqPbj9atw05FglvzeFsZ9cqXP+qvG6tXqyVuN2MYjgOvS0h0RewTIV6ZcyKW6PFzPBCWODueHus=
+Program.Sub.Comments.End
