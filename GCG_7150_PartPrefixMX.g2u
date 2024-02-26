@@ -1,0 +1,240 @@
+﻿Program.Sub.ScreenSU.Start
+Gui.F_Main..Create(BaseForm)
+Gui.F_Main..Caption("Part Number Prefix Maintenance")
+Gui.F_Main..Size(1024,720)
+Gui.F_Main..MinX(0)
+Gui.F_Main..MinY(0)
+Gui.F_Main..Position(0,0)
+Gui.F_Main..AlwaysOnTop(False)
+Gui.F_Main..FontName("Tahoma")
+Gui.F_Main..FontSize(8.25)
+Gui.F_Main..ControlBox(True)
+Gui.F_Main..MaxButton(True)
+Gui.F_Main..MinButton(True)
+Gui.F_Main..MousePointer(0)
+Gui.F_Main..Moveable(True)
+Gui.F_Main..Sizeable(True)
+Gui.F_Main..ShowInTaskBar(True)
+Gui.F_Main..TitleBar(True)
+Gui.F_Main..Event(UnLoad,F_Main_UnLoad)
+Gui.F_Main.GsGcPrefixes.Create(GsGridControl)
+Gui.F_Main.GsGcPrefixes.Enabled(True)
+Gui.F_Main.GsGcPrefixes.Visible(True)
+Gui.F_Main.GsGcPrefixes.Zorder(0)
+Gui.F_Main.GsGcPrefixes.Size(1004,617)
+Gui.F_Main.GsGcPrefixes.Position(12,59)
+Gui.F_Main.GsGcPrefixes.Event(CellValueChanged,GsGcPrefixes_CellValueChanged)
+Gui.F_Main.GsGcPrefixes.Event(RowCellClick,GsGcPrefixes_RowCellClick)
+Gui.F_Main.txtPrefix.Create(TextBox,"",True,100,20,0,12,28,True,0,"Tahoma",8.25,,1)
+Gui.F_Main.txtDesc.Create(TextBox,"",True,243,20,0,119,28,True,0,"Tahoma",8.25,,1)
+Gui.F_Main.lblPrefix.Create(Label,"Prefix",True,33,13,0,12,10,True,0,"Tahoma",8.25,,0,0)
+Gui.F_Main.lblPrefix.BorderStyle(0)
+Gui.F_Main.lblPrefix.FontStyle(True,False,False,False,False)
+Gui.F_Main.lblDesc.Create(Label,"Description",True,64,13,0,119,10,True,0,"Tahoma",8.25,,0,0)
+Gui.F_Main.lblDesc.BorderStyle(0)
+Gui.F_Main.lblDesc.FontStyle(True,False,False,False,False)
+Gui.F_Main.cmdSave.Create(Button)
+Gui.F_Main.cmdSave.Enabled(True)
+Gui.F_Main.cmdSave.Visible(True)
+Gui.F_Main.cmdSave.Zorder(0)
+Gui.F_Main.cmdSave.Size(50,37)
+Gui.F_Main.cmdSave.Position(374,10)
+Gui.F_Main.cmdSave.Caption("Insert New")
+Gui.F_Main.cmdSave.FontName("Tahoma")
+Gui.F_Main.cmdSave.FontSize(8.25)
+Gui.F_Main.cmdSave.FontStyle(True,False,False,False,False)
+Gui.F_Main.cmdSave.Event(Click,cmdSave_Click)
+Gui.F_Main.cmdDel.Create(Button)
+Gui.F_Main.cmdDel.Enabled(True)
+Gui.F_Main.cmdDel.Visible(True)
+Gui.F_Main.cmdDel.Zorder(0)
+Gui.F_Main.cmdDel.Size(50,37)
+Gui.F_Main.cmdDel.Position(430,10)
+Gui.F_Main.cmdDel.Caption("Delete")
+Gui.F_Main.cmdDel.FontName("Tahoma")
+Gui.F_Main.cmdDel.FontSize(8.25)
+Gui.F_Main.cmdDel.FontStyle(True,False,False,False,False)
+Gui.F_Main.cmdDel.Event(Click,cmdDel_Click)
+Program.Sub.ScreenSU.End
+
+Program.Sub.Preflight.Start
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+Function.Intrinsic.UI.UsePixels ' Allows you to use Pixels instead of Twips throughout
+F.Intrinsic.Control.Try
+'TJS, May 2023
+'Customer: Bishop Fixture & Millwork
+'Quote: 14137
+'Business case: Customer would like to have the ability to auto-number part numbers if required. The customer uses prefixes to identify the category a part numbers falls into, they want to set their new part numbers up by a prefix + a sequential number.
+'This portion of the project was designed to allow for maintenance of the part prefixes.
+V.Local.sCaption.Declare
+
+F.Intrinsic.String.Build("Insert{0}New",V.Ambient.NewLine,V.Local.sCaption)
+
+Gui.F_Main.cmdSave.Caption(V.Local.sCaption)
+
+F.Intrinsic.Control.If(V.DataTable.dtPrefixes.Exists)
+	F.Data.DataTable.Close("dtPrefixes")
+F.Intrinsic.Control.EndIf
+
+F.ODBC.Connection!conts.OpenCompanyConnection
+	F.Data.DataTable.CreateFromSQL("dtPrefixes","conts","Select RTRIM(PREFIX) as PREFIX,RTRIM(DESCRIPTION) as DESCRIPTION, ACTIVE from GCG_7150_PNPrefixMX",True)
+F.ODBC.Connection!conts.Close
+
+Gui.F_Main.GsGcPrefixes.AddGridviewFromDatatable("gvPrefixes","dtPrefixes")
+
+Gui.F_Main.GsGcPrefixes.SetColumnProperty("gvPrefixes","PREFIX",V.Enum.ColumnPropertyNames!HeaderFontBold,True)
+Gui.F_Main.GsGcPrefixes.SetColumnProperty("gvPrefixes","DESCRIPTION",V.Enum.ColumnPropertyNames!HeaderFontBold,True)
+Gui.F_Main.GsGcPrefixes.SetColumnProperty("gvPrefixes","ACTIVE",V.Enum.ColumnPropertyNames!HeaderFontBold,True)
+
+Gui.F_Main.GsGcPrefixes.SetColumnProperty("gvPrefixes","PREFIX",V.Enum.ColumnPropertyNames!Width,30)
+Gui.F_Main.GsGcPrefixes.SetColumnProperty("gvPrefixes","DESCRIPTION",V.Enum.ColumnPropertyNames!Width,200)
+Gui.F_Main.GsGcPrefixes.SetColumnProperty("gvPrefixes","ACTIVE",V.Enum.ColumnPropertyNames!Width,25)
+
+Gui.F_Main.GsGcPrefixes.SetColumnProperty("gvPrefixes","PREFIX",V.Enum.ColumnPropertyNames!HeaderHAlignment,"Center")
+Gui.F_Main.GsGcPrefixes.SetColumnProperty("gvPrefixes","DESCRIPTION",V.Enum.ColumnPropertyNames!HeaderHAlignment,"Left")
+Gui.F_Main.GsGcPrefixes.SetColumnProperty("gvPrefixes","ACTIVE",V.Enum.ColumnPropertyNames!HeaderHAlignment,"Center")
+
+Gui.F_Main.GsGcPrefixes.SetColumnProperty("gvPrefixes","PREFIX",V.Enum.ColumnPropertyNames!CellHAlignment,"Center")
+Gui.F_Main.GsGcPrefixes.SetColumnProperty("gvPrefixes","DESCRIPTION",V.Enum.ColumnPropertyNames!CellHAlignment,"Left")
+Gui.F_Main.GsGcPrefixes.SetColumnProperty("gvPrefixes","ACTIVE",V.Enum.ColumnPropertyNames!CellHAlignment,"Center")
+
+Gui.F_Main.GsGcPrefixes.SetColumnProperty("gvPrefixes","PREFIX",V.Enum.ColumnPropertyNames!AllowEdit,False)
+Gui.F_Main.GsGcPrefixes.SetColumnProperty("gvPrefixes","DESCRIPTION",V.Enum.ColumnPropertyNames!AllowEdit,True)
+Gui.F_Main.GsGcPrefixes.SetColumnProperty("gvPrefixes","ACTIVE",V.Enum.ColumnPropertyNames!AllowEdit,False)
+
+Gui.F_Main.GsGcPrefixes.SetColumnProperty("gvPrefixes","PREFIX",V.Enum.ColumnPropertyNames!ReadOnly,True)
+Gui.F_Main.GsGcPrefixes.SetColumnProperty("gvPrefixes","DESCRIPTION",V.Enum.ColumnPropertyNames!ReadOnly,False)
+Gui.F_Main.GsGcPrefixes.SetColumnProperty("gvPrefixes","ACTIVE",V.Enum.ColumnPropertyNames!ReadOnly,True)
+
+Gui.F_Main.GsGcPrefixes.SetColumnProperty("gvPrefixes","DESCRIPTION",V.Enum.ColumnPropertyNames!CellBackColor,"LightYellow")
+Gui.F_Main.GsGcPrefixes.SetColumnProperty("gvPrefixes","ACTIVE",V.Enum.ColumnPropertyNames!CellBackColor,"LightYellow")
+
+Gui.F_Main.GsGcPrefixes.MainView("gvPrefixes")
+
+Gui.F_Main..Show
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(Error,"SubRoutine",V.Ambient.CurrentSubroutine,"eNumber",V.Ambient.ErrorNumber,"eDescription",V.Ambient.ErrorDescription)
+F.Intrinsic.Control.EndTry
+Program.Sub.Main.End
+
+Program.Sub.GsGcPrefixes_RowCellClick.Start
+F.Intrinsic.Control.Try
+V.Local.iPrefix.Declare
+V.Local.sDesc.Declare
+
+F.Intrinsic.Control.SelectCase(V.Args.Column.UCase)
+	F.Intrinsic.Control.Case("ACTIVE")
+		F.Intrinsic.Control.If(V.Args.CellValue,=,True)
+			F.Data.DataTable.SetValue("dtPrefixes",V.Args.RowIndex,"ACTIVE",False)
+		F.Intrinsic.Control.Else
+			F.Data.DataTable.SetValue("dtPrefixes",V.Args.RowIndex,"ACTIVE",True)
+		F.Intrinsic.Control.EndIf
+		
+		F.ODBC.Connection!conts.OpenCompanyConnection
+			F.Data.DataTable.SaveToDB("dtPrefixes","conts","GCG_7150_PNPrefixMX","PREFIX",256,"")
+		F.ODBC.Connection!conts.Close
+	F.Intrinsic.Control.Case("PREFIX")
+		Gui.F_Main.GsGcPrefixes.GetCellValueByColumnName("gvPrefixes","PREFIX",V.Args.RowIndex,V.Local.iPrefix)
+		Gui.F_Main.GsGcPrefixes.GetCellValueByColumnName("gvPrefixes","DESCRIPTION",V.Args.RowIndex,V.Local.sDesc)
+		
+		Gui.F_Main.txtPrefix.Text(V.Local.iPrefix)
+		Gui.F_Main.txtDesc.Text(V.Local.sDesc.Trim)
+		
+F.Intrinsic.Control.EndSelect
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(Error,"SubRoutine",V.Ambient.CurrentSubroutine,"eNumber",V.Ambient.ErrorNumber,"eDescription",V.Ambient.ErrorDescription)
+F.Intrinsic.Control.EndTry
+Program.Sub.GsGcPrefixes_RowCellClick.End
+
+Program.Sub.GsGcPrefixes_CellValueChanged.Start
+F.Intrinsic.Control.Try
+V.Local.iPrefix.Declare
+V.Local.sDesc.Declare
+V.Local.sSQL.Declare
+
+F.Intrinsic.Control.SelectCase(V.Args.Column.UCase)
+	F.Intrinsic.Control.Case("DESCRIPTION")
+		Gui.F_Main.GsGcPrefixes.GetCellValueByColumnName("gvPrefixes","PREFIX",V.Args.RowIndex,V.Local.iPrefix)
+		Gui.F_Main.GsGcPrefixes.GetCellValueByColumnName("gvPrefixes","DESCRIPTION",V.Args.RowIndex,V.Local.sDesc)
+		
+		F.Intrinsic.String.Build("Update GCG_7150_PNPrefixMX set DESCRIPTION = '{0}' where PREFIX = '{1}'",V.Local.sDesc.UCase.PSQLFriendly,V.Local.iPrefix,V.Local.sSQL)
+		
+		F.ODBC.Connection!conts.OpenCompanyConnection
+			F.ODBC.Connection!conts.Execute(V.Local.sSQL)			
+		F.ODBC.Connection!conts.Close
+F.Intrinsic.Control.EndSelect
+
+F.Intrinsic.Control.CallSub(Main)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(Error,"SubRoutine",V.Ambient.CurrentSubroutine,"eNumber",V.Ambient.ErrorNumber,"eDescription",V.Ambient.ErrorDescription)
+F.Intrinsic.Control.EndTry
+Program.Sub.GsGcPrefixes_CellValueChanged.End
+
+Program.Sub.cmdSave_Click.Start
+F.Intrinsic.Control.Try
+V.Local.sSQL.Declare
+
+F.Intrinsic.String.Build("Select * from GCG_7150_PNPrefixMX where PREFIX = '{0}'",V.Screen.F_Main!txtPrefix.Text.Long,V.Local.sSQL)
+
+F.ODBC.Connection!conts.OpenCompanyConnection
+	F.ODBC.Connection!conts.ExecuteAndReturn(V.Local.sSQL,V.Local.sSQL)
+
+	F.Intrinsic.Control.If(V.Ambient.ExecuteAndReturnEOF)
+		F.Intrinsic.String.Build("Insert into GCG_7150_PNPrefixMX (PREFIX,DESCRIPTION,ACTIVE) values ({0},'{1}',0)",V.Screen.F_Main!txtPrefix.Text.Long,V.Screen.F_Main!txtDesc.Text.UCase.Trim,V.Local.sSQL)	
+		F.ODBC.Connection!conts.Execute(V.Local.sSQL)
+	F.Intrinsic.Control.EndIf
+F.ODBC.Connection!conts.Close
+
+Gui.F_Main.txtPrefix.Text("")
+Gui.F_Main.txtDesc.Text("")
+
+F.Intrinsic.Control.CallSub(Main)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(Error,"SubRoutine",V.Ambient.CurrentSubroutine,"eNumber",V.Ambient.ErrorNumber,"eDescription",V.Ambient.ErrorDescription)
+F.Intrinsic.Control.EndTry
+Program.Sub.cmdSave_Click.End
+
+Program.Sub.cmdDel_Click.Start
+F.Intrinsic.Control.Try
+V.Local.sSQL.Declare
+
+F.Intrinsic.String.Build("Delete GCG_7150_PNPrefixMX where PREFIX = '{0}'",V.Screen.F_Main!txtPrefix.Text.Long,V.Local.sSQL)
+
+F.ODBC.Connection!conts.OpenCompanyConnection
+	F.ODBC.Connection!conts.Execute(V.Local.sSQL)
+F.ODBC.Connection!conts.Close
+
+Gui.F_Main.txtPrefix.Text("")
+Gui.F_Main.txtDesc.Text("")
+
+F.Intrinsic.Control.CallSub(Main)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(Error,"SubRoutine",V.Ambient.CurrentSubroutine,"eNumber",V.Ambient.ErrorNumber,"eDescription",V.Ambient.ErrorDescription)
+F.Intrinsic.Control.EndTry
+Program.Sub.cmdDel_Click.End
+
+Program.Sub.F_Main_UnLoad.Start
+F.Intrinsic.Control.End
+Program.Sub.F_Main_UnLoad.End
+
+Program.Sub.Error.Start
+V.Local.sError.Declare
+V.Local.iRet.Declare
+V.Local.sSep.Declare
+
+F.Intrinsic.String.Build("-------------------------------------------------------------------------------------",,V.Local.sSep)
+F.Intrinsic.String.Build("({5}-{6}){0}{7}{0}Project: {4}{0}{7}{0}Sub: {1}{0}Error: {2}, {3}", V.Ambient.NewLine, V.Args.SubRoutine, V.Args.eNumber, V.Args.eDescription,V.Caller.ScriptFile,V.Ambient.Date, V.Ambient.Time,V.Local.sSep,V.Local.sError)
+F.Intrinsic.UI.Msgbox(V.Local.sError,"Error",V.Local.iRet)
+Program.Sub.Error.End
+
+Program.Sub.Comments.Start
+${$5$}$20.1.8474.24170$}$1
+${$6$}$tsmith$}$20230517120900665$}$xqPbj9atw05FglvzeFsZ9cqXP+qvG6tXS61nH83E5XVPWSsyUY/nmmXtYZw+eHpjenqUkXsthXA=
+Program.Sub.Comments.End
